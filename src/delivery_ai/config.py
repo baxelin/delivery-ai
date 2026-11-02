@@ -6,6 +6,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 REVIEWS_PATH = DATA_DIR / "olist_order_reviews_dataset.csv"
+MODELS_DIR = PROJECT_ROOT / "models"
+SENTIMENT_MODEL_PATH = MODELS_DIR / "sentiment_model.joblib"
 
 ID_COLUMN = "review_id"
 SCORE_COLUMN = "review_score"
@@ -34,6 +36,10 @@ UNIGRAMS_AND_BIGRAMS = (1, 2)
 # Validação cruzada em 5 partes: cada avaliação do treino é prevista uma vez por um modelo
 # que não a viu, sem gastar o conjunto de teste na escolha de configurações.
 CV_FOLDS = 5
+
+# Configuração escolhida no Passo 9 (validação cruzada): bigramas, sem peso de classe.
+SENTIMENT_NGRAM_RANGE = UNIGRAMS_AND_BIGRAMS
+SENTIMENT_CLASS_WEIGHT = None
 
 # A nota 3 fica fora do problema binário: é ambígua e viraria ruído nos rótulos.
 NEUTRAL_SCORE = 3

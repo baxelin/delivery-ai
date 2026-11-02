@@ -63,19 +63,9 @@ def test_tfidf_vectorizer_learns_vocabulary_only_from_fit_texts() -> None:
 
 
 @pytest.fixture
-def trained_sentiment_model() -> Pipeline:
+def trained_sentiment_model(separable_reviews: tuple[list[str], list[int]]) -> Pipeline:
     """Modelo treinado num conjunto pequeno em que as palavras separam bem as classes."""
-    texts = [
-        "adorei produto",
-        "adorei entrega",
-        "otimo produto",
-        "otimo entrega",
-        "pessimo produto",
-        "pessimo entrega",
-        "horrivel produto",
-        "horrivel entrega",
-    ]
-    labels = [POSITIVE] * 4 + [NEGATIVE] * 4
+    texts, labels = separable_reviews
     return build_sentiment_model().fit(texts, labels)
 
 
