@@ -1,4 +1,4 @@
-"""Testes da limpeza e rotulagem das avaliações da Olist."""
+"""Testes da limpeza, rotulagem e divisão treino/teste das avaliações da Olist."""
 
 from pathlib import Path
 
@@ -20,6 +20,7 @@ from delivery_ai.data import (
     keep_reviews_with_text,
     load_reviews,
     prepare_sentiment_dataset,
+    split_train_test,
 )
 
 
@@ -116,3 +117,62 @@ def test_prepare_sentiment_dataset_does_not_modify_input() -> None:
     prepare_sentiment_dataset(reviews)
 
     pd.testing.assert_frame_equal(reviews, original)
+
+
+def make_labeled_dataset(n_positive: int, n_negative: int) -> pd.DataFrame:
+    """Monta um conjunto já rotulado, no formato devolvido por `prepare_sentiment_dataset`."""
+    labels = [POSITIVE] * n_positive + [NEGATIVE] * n_negative
+    return pd.DataFrame(
+        {
+            ID_COLUMN: [f"r{index}" for index in range(len(labels))],
+            MESSAGE_COLUMN: [f"texto {index}" for index in range(len(labels))],
+            SCORE_COLUMN: [5 if label == POSITIVE else 1 for label in labels],
+            SENTIMENT_COLUMN: labels,
+        }
+    )
+
+
+@pytest.fixture
+def labeled_dataset() -> pd.DataFrame:
+    """80 positivas e 20 negativas: proporção desbalanceada como a dos dados reais."""
+    return make_labeled_dataset(n_positive=80, n_negative=20)
+
+
+def test_split_train_test_uses_requested_test_size(labeled_dataset: pd.DataFrame) -> None:
+    """20% do conjunto vai para teste e o restante para treino."""
+    split = split_train_test(labeled_dataset, test_size=0.2)
+
+    assert len(split.test) == 20
+    assert len(split.train) == 80
+
+
+def test_split_train_test_keeps_class_proportion(labeled_dataset: pd.DataFrame) -> None:
+    """Com estratificação, a proporção é exata para qualquer semente, e não por sorte."""
+    expected_positive_share = 0.8
+
+    for seed in range(10):
+        split = split_train_test(labeled_dataset, test_size=0.2, random_state=seed)
+
+        assert split.train[SENTIMENT_COLUMN].mean() == pytest.approx(expected_positive_share)
+        assert split.test[SENTIMENT_COLUMN].mean() == pytest.approx(expected_positive_share)
+
+
+def test_split_train_test_has_no_overlap_and_covers_all_rows(
+    labeled_dataset: pd.DataFrame,
+) -> None:
+    """Uma avaliação no treino e no teste ao mesmo tempo inflaria a métrica."""
+    split = split_train_test(labeled_dataset)
+    train_ids = set(split.train[ID_COLUMN])
+    test_ids = set(split.test[ID_COLUMN])
+
+    assert train_ids.isdisjoint(test_ids)
+    assert train_ids | test_ids == set(labeled_dataset[ID_COLUMN])
+
+
+def test_split_train_test_is_reproducible_with_same_seed(labeled_dataset: pd.DataFrame) -> None:
+    """Mesma semente, mesma divisão: os resultados podem ser repetidos e comparados."""
+    first = split_train_test(labeled_dataset, random_state=7)
+    second = split_train_test(labeled_dataset, random_state=7)
+
+    pd.testing.assert_frame_equal(first.train, second.train)
+    pd.testing.assert_frame_equal(first.test, second.test)

@@ -19,6 +19,9 @@ SENTIMENT_NAMES = {NEGATIVE: "negativo", POSITIVE: "positivo"}
 # Semente fixa para amostras e divisões aleatórias serem reproduzíveis.
 RANDOM_STATE = 42
 
+# 20% para teste: sobra volume para treinar e o teste ainda tem milhares de exemplos.
+TEST_SIZE = 0.2
+
 # A nota 3 fica fora do problema binário: é ambígua e viraria ruído nos rótulos.
 NEUTRAL_SCORE = 3
 NEGATIVE_SCORES = frozenset({1, 2})

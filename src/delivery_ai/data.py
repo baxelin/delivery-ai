@@ -1,20 +1,24 @@
-"""Carregamento, limpeza e rotulagem das avaliações da Olist para o classificador de sentimento.
+"""Carregamento, limpeza, rotulagem e divisão das avaliações da Olist para o classificador.
 
 São funções puras: recebem um DataFrame e devolvem outro, sem alterar o original.
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 from delivery_ai.config import (
     ID_COLUMN,
     MESSAGE_COLUMN,
     NEUTRAL_SCORE,
+    RANDOM_STATE,
     REVIEWS_PATH,
     SCORE_COLUMN,
     SCORE_TO_SENTIMENT,
     SENTIMENT_COLUMN,
+    TEST_SIZE,
 )
 
 # Só o que o modelo e a análise de erros precisam; o resto do CSV não é usado.
@@ -69,3 +73,34 @@ def prepare_sentiment_dataset(reviews: pd.DataFrame) -> pd.DataFrame:
         .pipe(add_sentiment_label)
     )
     return prepared[DATASET_COLUMNS].reset_index(drop=True)
+
+
+@dataclass(frozen=True)
+class TrainTestSplit:
+    """Partes de treino e de teste, com nomes explícitos em vez de uma tupla anônima.
+
+    Guarda os DataFrames inteiros (não só texto e rótulo) para que a análise de erros
+    ainda tenha `review_id` e a nota original de cada avaliação.
+    """
+
+    train: pd.DataFrame
+    test: pd.DataFrame
+
+
+def split_train_test(
+    dataset: pd.DataFrame,
+    test_size: float = TEST_SIZE,
+    random_state: int = RANDOM_STATE,
+) -> TrainTestSplit:
+    """Divide o conjunto em treino e teste mantendo a mesma proporção de sentimento nos dois.
+
+    A estratificação evita que, por sorte, o teste fique com mais ou menos negativas
+    que o treino, o que mudaria a métrica sem o modelo ter mudado.
+    """
+    train, test = train_test_split(
+        dataset,
+        test_size=test_size,
+        stratify=dataset[SENTIMENT_COLUMN],
+        random_state=random_state,
+    )
+    return TrainTestSplit(train=train, test=test)
