@@ -14,6 +14,10 @@ SENTIMENT_COLUMN = "sentiment"
 
 NEGATIVE = 0
 POSITIVE = 1
+SENTIMENT_NAMES = {NEGATIVE: "negativo", POSITIVE: "positivo"}
+
+# Semente fixa para amostras e divisões aleatórias serem reproduzíveis.
+RANDOM_STATE = 42
 
 # A nota 3 fica fora do problema binário: é ambígua e viraria ruído nos rótulos.
 NEUTRAL_SCORE = 3
