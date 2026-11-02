@@ -1,9 +1,15 @@
 """Testes dos construtores de modelos de sentimento."""
 
 import pandas as pd
+import pytest
+from sklearn.pipeline import Pipeline
 
 from delivery_ai.config import NEGATIVE, POSITIVE
-from delivery_ai.models import build_baseline_model, build_tfidf_vectorizer
+from delivery_ai.models import (
+    build_baseline_model,
+    build_sentiment_model,
+    build_tfidf_vectorizer,
+)
 
 
 def test_baseline_model_always_predicts_majority_class() -> None:
@@ -53,3 +59,40 @@ def test_tfidf_vectorizer_learns_vocabulary_only_from_fit_texts() -> None:
     assert "pessimo" not in vectorizer.vocabulary_
     assert unseen.shape[1] == len(vectorizer.vocabulary_)
     assert unseen.nnz == 0
+
+
+@pytest.fixture
+def trained_sentiment_model() -> Pipeline:
+    """Modelo treinado num conjunto pequeno em que as palavras separam bem as classes."""
+    texts = [
+        "adorei produto",
+        "adorei entrega",
+        "otimo produto",
+        "otimo entrega",
+        "pessimo produto",
+        "pessimo entrega",
+        "horrivel produto",
+        "horrivel entrega",
+    ]
+    labels = [POSITIVE] * 4 + [NEGATIVE] * 4
+    return build_sentiment_model().fit(texts, labels)
+
+
+def test_sentiment_model_classifies_new_texts(trained_sentiment_model: Pipeline) -> None:
+    """Textos que o modelo nunca viu, mas com palavras conhecidas, saem com o sentimento certo."""
+    predictions = trained_sentiment_model.predict(["adorei", "horrivel demais"])
+
+    assert predictions.tolist() == [POSITIVE, NEGATIVE]
+
+
+def test_sentiment_model_uses_project_vectorizer(trained_sentiment_model: Pipeline) -> None:
+    """Acento e maiúscula são tratados dentro do modelo, sem preparo extra de quem chama."""
+    assert trained_sentiment_model.predict(["Péssimo"]).tolist() == [NEGATIVE]
+
+
+def test_sentiment_model_returns_probabilities(trained_sentiment_model: Pipeline) -> None:
+    """Uma probabilidade por classe, somando 1: base para medir a confiança de cada previsão."""
+    probabilities = trained_sentiment_model.predict_proba(["adorei", "pessimo"])
+
+    assert probabilities.shape == (2, 2)
+    assert probabilities.sum(axis=1).tolist() == pytest.approx([1.0, 1.0])

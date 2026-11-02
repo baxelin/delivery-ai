@@ -6,8 +6,14 @@ criem os modelos sempre com a mesma configuração.
 
 from sklearn.dummy import DummyClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
 
 from delivery_ai.config import TFIDF_MIN_DF
+
+# Nomes das etapas do pipeline, para acessar o vocabulário e os pesos depois do treino.
+VECTORIZER_STEP = "tfidf"
+CLASSIFIER_STEP = "classifier"
 
 
 def build_baseline_model() -> DummyClassifier:
@@ -26,3 +32,17 @@ def build_tfidf_vectorizer() -> TfidfVectorizer:
     que inverte o sentimento da frase.
     """
     return TfidfVectorizer(strip_accents="unicode", min_df=TFIDF_MIN_DF)
+
+
+def build_sentiment_model() -> Pipeline:
+    """Modelo da v1: TF-IDF seguido de regressão logística, num único pipeline.
+
+    Juntar as duas etapas garante que o vocabulário seja aprendido só nos dados do `fit`
+    (sem vazamento) e deixa um único objeto para salvar e usar na API com texto cru.
+    """
+    return Pipeline(
+        [
+            (VECTORIZER_STEP, build_tfidf_vectorizer()),
+            (CLASSIFIER_STEP, LogisticRegression()),
+        ]
+    )
