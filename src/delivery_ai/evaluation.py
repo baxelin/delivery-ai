@@ -7,9 +7,11 @@ e com 71% de positivas a acurácia sozinha esconde um modelo que nunca acha nenh
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from sklearn.base import BaseEstimator
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.model_selection import StratifiedKFold, cross_val_predict
 
-from delivery_ai.config import NEGATIVE
+from delivery_ai.config import CV_FOLDS, NEGATIVE, RANDOM_STATE
 
 # Quando o modelo não prevê nenhum negativo, precisão e F1 viram 0/0; a regra é tratar como 0.
 ZERO_DIVISION_VALUE = 0.0
@@ -38,3 +40,21 @@ def evaluate_predictions(y_true: Sequence[int], y_pred: Sequence[int]) -> Classi
             f1_score(y_true, y_pred, average="macro", zero_division=ZERO_DIVISION_VALUE)
         ),
     )
+
+
+def cross_validate_predictions(
+    model: BaseEstimator,
+    texts: Sequence[str],
+    labels: Sequence[int],
+    folds: int = CV_FOLDS,
+    random_state: int = RANDOM_STATE,
+) -> ClassificationMetrics:
+    """Avalia uma configuração só com o treino, por validação cruzada estratificada.
+
+    Serve para comparar configurações sem olhar o teste: escolher olhando o teste
+    tornaria a nota final otimista. O modelo recebido não é treinado (o scikit-learn
+    treina cópias), e as divisões repetem com a mesma semente para a comparação ser justa.
+    """
+    splitter = StratifiedKFold(n_splits=folds, shuffle=True, random_state=random_state)
+    predictions = cross_val_predict(model, texts, labels, cv=splitter)
+    return evaluate_predictions(labels, predictions)

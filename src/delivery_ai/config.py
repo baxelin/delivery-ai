@@ -26,6 +26,15 @@ TEST_SIZE = 0.2
 # as que aparecem uma vez só são quase sempre erros de digitação e não generalizam.
 TFIDF_MIN_DF = 2
 
+# Faixas de n-gramas: só palavras soltas (modelo inicial) ou palavras + pares de palavras,
+# que capturam negações como "nao recebi" x "nao tive".
+UNIGRAMS = (1, 1)
+UNIGRAMS_AND_BIGRAMS = (1, 2)
+
+# Validação cruzada em 5 partes: cada avaliação do treino é prevista uma vez por um modelo
+# que não a viu, sem gastar o conjunto de teste na escolha de configurações.
+CV_FOLDS = 5
+
 # A nota 3 fica fora do problema binário: é ambígua e viraria ruído nos rótulos.
 NEUTRAL_SCORE = 3
 NEGATIVE_SCORES = frozenset({1, 2})

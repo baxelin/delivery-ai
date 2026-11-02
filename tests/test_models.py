@@ -4,8 +4,9 @@ import pandas as pd
 import pytest
 from sklearn.pipeline import Pipeline
 
-from delivery_ai.config import NEGATIVE, POSITIVE
+from delivery_ai.config import NEGATIVE, POSITIVE, UNIGRAMS_AND_BIGRAMS
 from delivery_ai.models import (
+    CLASSIFIER_STEP,
     build_baseline_model,
     build_sentiment_model,
     build_tfidf_vectorizer,
@@ -96,3 +97,27 @@ def test_sentiment_model_returns_probabilities(trained_sentiment_model: Pipeline
 
     assert probabilities.shape == (2, 2)
     assert probabilities.sum(axis=1).tolist() == pytest.approx([1.0, 1.0])
+
+
+def test_tfidf_vectorizer_with_bigrams_keeps_word_pairs() -> None:
+    """Com bigramas, "nao recebi" vira uma coluna própria, separada de "nao tive"."""
+    vectorizer = build_tfidf_vectorizer(ngram_range=UNIGRAMS_AND_BIGRAMS).fit(
+        ["não recebi o pedido", "não recebi nada", "não tive problema", "não tive problemas"]
+    )
+
+    assert "nao recebi" in vectorizer.vocabulary_
+    assert "nao tive" in vectorizer.vocabulary_
+
+
+def test_tfidf_vectorizer_uses_only_single_words_by_default() -> None:
+    """O padrão continua sendo o modelo inicial, para não mudar os resultados já registrados."""
+    vectorizer = build_tfidf_vectorizer().fit(["não recebi", "não recebi"])
+
+    assert set(vectorizer.vocabulary_) == {"nao", "recebi"}
+
+
+def test_sentiment_model_passes_class_weight_to_classifier() -> None:
+    """O peso das classes chega à regressão logística, que é quem o usa."""
+    model = build_sentiment_model(class_weight="balanced")
+
+    assert model.named_steps[CLASSIFIER_STEP].class_weight == "balanced"
