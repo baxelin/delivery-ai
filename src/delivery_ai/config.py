@@ -22,6 +22,10 @@ RANDOM_STATE = 42
 # 20% para teste: sobra volume para treinar e o teste ainda tem milhares de exemplos.
 TEST_SIZE = 0.2
 
+# Palavra precisa aparecer em pelo menos 2 avaliações do treino para virar coluna:
+# as que aparecem uma vez só são quase sempre erros de digitação e não generalizam.
+TFIDF_MIN_DF = 2
+
 # A nota 3 fica fora do problema binário: é ambígua e viraria ruído nos rótulos.
 NEUTRAL_SCORE = 3
 NEGATIVE_SCORES = frozenset({1, 2})
