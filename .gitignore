@@ -6,3 +6,4 @@ credentials*.json
 data/
 models/
 CLAUDE.md
+.claude/
